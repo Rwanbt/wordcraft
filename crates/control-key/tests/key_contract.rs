@@ -6,17 +6,32 @@ use wordcraft_control_key::parse_instance_id;
 #[test]
 fn accepts_only_portable_single_component_identifiers() {
     for valid in ["a", "A09", "flatpak_12-3", "0"] {
-        assert_eq!(parse_instance_id(&format!("[Instance]\ninstance-id={valid}\n")), Some(valid.to_owned()));
+        assert_eq!(
+            parse_instance_id(&format!("[Instance]\ninstance-id={valid}\n")),
+            Some(valid.to_owned())
+        );
     }
-    for invalid in ["", ".", "..", "../secrets", "a/b", "a\\b", "space name", "é", "a:b", "a.b", "a\0b"] {
-        assert_eq!(parse_instance_id(&format!("instance-id={invalid}\n")), None, "accepted unsafe instance: {invalid:?}");
+    for invalid in [
+        "", ".", "..", "../secrets", "a/b", "a\\b", "space name", "é", "a:b", "a.b", "a\0b",
+    ] {
+        assert_eq!(
+            parse_instance_id(&format!("instance-id={invalid}\n")),
+            None,
+            "accepted unsafe instance: {invalid:?}"
+        );
     }
 }
 
 #[test]
 fn rejects_first_unsafe_value_even_when_later_value_is_safe() {
-    assert_eq!(parse_instance_id("instance-id=../unsafe\ninstance-id=safe\n"), None);
-    assert_eq!(parse_instance_id("[Instance]\ninstance-id=instance_1\n"), Some("instance_1".to_string()));
+    assert_eq!(
+        parse_instance_id("instance-id=../unsafe\ninstance-id=safe\n"),
+        None
+    );
+    assert_eq!(
+        parse_instance_id("[Instance]\ninstance-id=instance_1\n"),
+        Some("instance_1".to_string())
+    );
     assert_eq!(parse_instance_id("unrelated=true\n"), None);
 }
 
