@@ -226,5 +226,4 @@ mod tests {
             assert_eq!(fs::read_dir(&d.0).unwrap().count(), 1);
         }
     }
-
 }
