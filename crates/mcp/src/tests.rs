@@ -120,7 +120,6 @@ fn headless_sessions_keep_the_dictionary_in_memory() {
     assert!(h.session.user_dict_path.is_none());
 }
 
-
 /// Through real MCP tools, a read root grants no write authority and vice versa.
 /// Unlike a path-only unit test, this checks routing through Server -> Headless -> file I/O.
 #[cfg(not(target_arch = "wasm32"))]
@@ -137,11 +136,7 @@ fn mcp_file_roots_confine_open_save_and_keep_outside_documents_unchanged() {
         }
     }
     static NEXT: AtomicU64 = AtomicU64::new(0);
-    let dir = TempDir(std::env::temp_dir().join(format!(
-        "wordcraft-mcp-roots-{}-{}",
-        std::process::id(),
-        NEXT.fetch_add(1, Ordering::Relaxed)
-    )));
+    let dir = TempDir(std::env::temp_dir().join(format!("wordcraft-mcp-roots-{}-{}", std::process::id(), NEXT.fetch_add(1, Ordering::Relaxed))));
     for part in ["read", "write", "outside"] {
         std::fs::create_dir_all(dir.0.join(part)).unwrap();
     }
