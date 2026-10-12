@@ -179,4 +179,52 @@ mod tests {
         assert_eq!(fs::metadata(&path).unwrap().permissions().mode() & 0o777, 0o640);
         assert_eq!(fs::read(&path).unwrap(), b"Saved again.");
     }
+
+    #[test]
+    fn failed_preparation_of_new_document_leaves_no_destination_or_temporary() {
+        let d = Scratch::new();
+        let path = d.target();
+        let err = replace_with(&path, false, |file| {
+            file.write_all(b"Incomplete new document.")?;
+            Err(io::Error::other("injected new-document failure"))
+        })
+        .unwrap_err();
+
+        assert_eq!(err.kind(), io::ErrorKind::Other);
+        assert!(!path.exists());
+        assert_eq!(fs::read_dir(&d.0).unwrap().count(), 0);
+    }
+
+    #[test]
+    fn dropping_uncommitted_temporary_preserves_original_and_unrelated_file() {
+        let d = Scratch::new();
+        let path = d.target();
+        let neighbour = d.0.join("unrelated.txt");
+        fs::write(&path, b"Original document.").unwrap();
+        fs::write(&neighbour, b"Keep this file.").unwrap();
+
+        let mut temp = Temporary::create(&path, true).unwrap();
+        let temporary_path = temp.path.clone();
+        temp.file().unwrap().write_all(b"Uncommitted changes.").unwrap();
+        assert!(temporary_path.exists());
+        drop(temp);
+
+        assert!(!temporary_path.exists());
+        assert_eq!(fs::read(&path).unwrap(), b"Original document.");
+        assert_eq!(fs::read(&neighbour).unwrap(), b"Keep this file.");
+        assert_eq!(fs::read_dir(&d.0).unwrap().count(), 2);
+    }
+
+    #[test]
+    fn repeated_saves_preserve_exact_bytes_without_leaking_temporary_files() {
+        let d = Scratch::new();
+        let path = d.target();
+        for len in [0, 1, 4096, 65_537] {
+            let contents = vec![0xA5; len];
+            write(&path, &contents).unwrap();
+            assert_eq!(fs::read(&path).unwrap(), contents);
+            assert_eq!(fs::read_dir(&d.0).unwrap().count(), 1);
+        }
+    }
+
 }
