@@ -12,6 +12,7 @@
 | WC-DOC-001 | `doc/src/tests.rs` | Model invariants, edits and serialization | Existing test file; tests not harness-counted | Not yet configured | UNVERIFIED |
 | WC-SEARCH-001 | `engine/src/cmd/find_pattern.rs` | Case sensitivity remains correct for all wildcard and regex flag combinations | Added exhaustive 8-combination behavior regression after Clippy simplification | `linux-quality` engine unit tests | UNVERIFIED |
 | WC-ENGINE-001 | `engine/src/tests_typing.rs` | Word-style keyboard editing, undo and list semantics | Existing test module | Not yet configured | UNVERIFIED |
+| WC-MCP-002 | `mcp/src/tests.rs` | Real MCP tools enforce separate read/write root permissions, preserve outside files, and reject reading write-only output | New protocol-level save/open confinement test | `workspace-tests` | UNVERIFIED |
 | WC-MCP-001 | `mcp`, `apps/wordcraft-cli` | Commands, root confinement, deterministic error handling | Source exists; CLI smoke and protocol matrix pending | Not yet configured | UNVERIFIED |
 | WC-UI-001 | `ui-egui`, `apps/wordcraft` | Open/edit/save/reload, keyboard, dialogs and rendering | Existing screenshot harness noted in AGENTS.md | Native E2E unavailable in this first gate | BLOCKED |
 | WC-WEB-001 | `apps/wordcraft-web` | Browser startup, edit, persistence and export | Web target exists; no browser E2E in first gate | Not yet configured | UNVERIFIED |
