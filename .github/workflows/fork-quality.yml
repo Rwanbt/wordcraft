@@ -53,6 +53,8 @@ jobs:
         run: cargo test --locked -p wordcraft-docx --test malformed
       - name: Control-key path isolation and hostile identifiers
         run: cargo test --locked -p wordcraft-control-key --all-targets
+      - name: CLI document create edit reopen export and error E2E
+        run: cargo test --locked -p wordcraft-cli --test document_roundtrip
 
   linux-quality:
     runs-on: ubuntu-24.04
