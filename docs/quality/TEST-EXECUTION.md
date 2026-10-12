@@ -38,3 +38,5 @@ No generated or hypothetical metric counts as a measured baseline.
 - `38271257922` (SHA `ee059393a1f67b9dcaeb2b60430af4da3cbbbcdf`): geometry coverage reports **267 / 268 lines (99.63%)** and **43 / 43 functions (100%)**; formatting failed on two rustfmt arrangements in new tests. These changes are corrected in the subsequent commit; latest exact-SHA CI must be checked separately.
 
 Do not interpret a passing individual job as an entirely green workflow. The package-specific instrumentation and three targeted integration suites do not prove full workspace stability.
+
+- Full workspace run `38273887922` at SHA `80b442de947ce1a760cd6f983655fe0e78b5d0f3`: `workspace-tests` and `workspace-clippy` blocked by a second MSRV mismatch (locked egui/eframe 0.36.2 require Rust 1.95); `repository-invariants` succeeded. Not counted as test failures or passing coverage. The replacement Rust 1.95 workflow run must be checked at its own SHA.

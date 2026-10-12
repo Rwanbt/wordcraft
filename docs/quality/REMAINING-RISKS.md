@@ -26,3 +26,5 @@
 - One pre-existing `docbin/src/fmt.rs` irrefutable let-chain failed Clippy `-D warnings`. A behavior-preserving fix with a synthetic RGB decoding test was committed; passing Clippy at the newer SHA is still required.
 - Initial geometry instrumentation at `483918eeb3975004079dbf82e5fe87d4cff1bc83`: 70.26% lines and 71.05% functions. Geometry tests and numeric overflow validation have been expanded; recalculate coverage after new CI.
 - A later strict Clippy pass identified engine `find_pattern.rs` unnecessary negation and a test-only explicit `drop(run)` on a non-`Drop` closure in `ribbon.rs`. Boolean semantics preserved with a complete 8-combination regression; removed redundant explicit drop. Verification at the new SHA pending.
+
+- Expanded workspace CI on 2026-10-12 identified `egui` / `eframe` `0.36.2` and related locked crates requiring Rust 1.95, whereas the earlier narrow-engine checks only required Rust 1.92. The declared workspace MSRV and fork CI toolchains were advanced to 1.95; complete CI at the new SHA is required before this is considered fixed.
