@@ -112,7 +112,8 @@ pub fn parse_measure(s: &str, default: Unit) -> Option<f32> {
         "px" => 0.75,
         _ => return None,
     };
-    Some(v * k)
+    let points = v * k;
+    points.is_finite().then_some(points)
 }
 
 /// A point in page space (points, y down).
@@ -331,5 +332,91 @@ mod tests {
         assert_eq!(paper_name(612.0, 792.0), Some("Letter"));
         assert_eq!(paper_name(792.0, 612.0), Some("Letter"));
         assert_eq!(paper_name(100.0, 100.0), None);
+    }
+
+    #[test]
+    fn numeric_measure_overflow_is_rejected_instead_of_returning_infinity() {
+        // The source number fits f32, but conversion from cm to points overflows.
+        let huge_cm = format!("{}cm", "9".repeat(38));
+        assert_eq!(parse_measure(&huge_cm, Unit::Points), None);
+        assert_eq!(parse_measure("4px", Unit::Points), Some(3.0));
+        assert_eq!(parse_measure("3 pi", Unit::Points), Some(36.0));
+        assert_eq!(parse_measure("1e309pt", Unit::Points), None);
+        // A larger integer itself becomes infinity when parsed as f32.
+        let unrepresentable = format!("{}pt", "9".repeat(45));
+        assert_eq!(parse_measure(&unrepresentable, Unit::Points), None);
+    }
+
+    #[test]
+    fn all_units_format_and_geometry_handles_degenerate_edges() {
+        assert_eq!(Unit::Millimeters.format(72.0), "25.4 mm");
+        assert_eq!(Unit::Picas.format(12.0), "1 pi");
+        assert_eq!(Unit::Inches.format(f32::INFINITY), "0\"");
+        assert_eq!(to_half_points(f32::NAN), 0);
+        assert_eq!(to_emu(f32::INFINITY), 0);
+        let r = Rect::new(2.0, 4.0, 10.0, 8.0);
+        assert_eq!(r.right(), 12.0);
+        assert_eq!(r.bottom(), 12.0);
+        assert!(!r.contains(Point::new(13.0, 4.0)));
+        assert!(!r.intersects(&Rect::new(12.0, 0.0, 10.0, 10.0)));
+        assert_eq!(r.expand(2.0), Rect::new(0.0, 2.0, 14.0, 12.0));
+        assert_eq!(r.expand(-20.0).w, 0.0);
+        assert_eq!(r.expand(-20.0).h, 0.0);
+    }
+
+    #[test]
+    fn rotation_normalization_and_identity_cover_invalid_angles() {
+        assert_eq!(normalize_degrees(360.0), 0.0);
+        assert_eq!(normalize_degrees(-90.0), 270.0);
+        assert_eq!(normalize_degrees(f32::NAN), 0.0);
+        assert_eq!(normalize_degrees(f32::INFINITY), 0.0);
+        assert!(Spin::new(360.0, false, false).is_identity());
+        assert!(!Spin::new(0.0, true, false).is_identity());
+        assert!(!Spin::new(90.0, false, false).is_identity());
+    }
+
+    #[test]
+    fn spin_cardinal_rotation_mirror_inverse_and_affine_matrix_agree() {
+        let spin = Spin::new(90.0, true, false);
+        let center = (7.0, -3.0);
+        let p = (11.0, -1.0);
+        let moved = spin.apply(center.0, center.1, p.0, p.1);
+        let recovered = spin.unapply(center.0, center.1, moved.0, moved.1);
+        assert!((recovered.0 - p.0).abs() < 0.0001);
+        assert!((recovered.1 - p.1).abs() < 0.0001);
+        // A clockwise quarter-turn after a horizontal mirror maps (4, 2) to (-2, -4).
+        assert!((moved.0 - 5.0).abs() < 0.0001);
+        assert!((moved.1 + 7.0).abs() < 0.0001);
+        let [a, b, c, d, e, f] = spin.matrix(center.0, center.1);
+        assert!((a * p.0 + c * p.1 + e - moved.0).abs() < 0.0001);
+        assert!((b * p.0 + d * p.1 + f - moved.1).abs() < 0.0001);
+        let identity = Spin::default().matrix(f32::NAN, f32::INFINITY);
+        assert_eq!(identity, [1.0, 0.0, -0.0, 1.0, 0.0, 0.0]);
+    }
+
+    #[test]
+    fn rotated_bounds_and_group_composition_have_independent_oracles() {
+        let quarter = Spin::new(90.0, false, false);
+        let rect = Rect::new(10.0, 20.0, 12.0, 4.0);
+        let bounds = quarter.bounds(rect);
+        assert!((bounds.x - 14.0).abs() < 0.0001);
+        assert!((bounds.y - 16.0).abs() < 0.0001);
+        assert!((bounds.w - 4.0).abs() < 0.0001);
+        assert!((bounds.h - 12.0).abs() < 0.0001);
+        let (w, h) = quarter.extent(-12.0, -4.0);
+        assert!((w - 4.0).abs() < 0.0001);
+        assert!((h - 12.0).abs() < 0.0001);
+
+        for outer in [Spin::new(30.0, false, false), Spin::new(140.0, true, false), Spin::new(270.0, false, true), Spin::new(35.0, true, true)] {
+            let inner = Spin::new(45.0, true, false);
+            let composed = inner.within(outer);
+            for p in [(1.0, 2.0), (-3.0, 5.0), (0.0, 0.0)] {
+                let first = inner.apply(0.0, 0.0, p.0, p.1);
+                let sequential = outer.apply(0.0, 0.0, first.0, first.1);
+                let one = composed.apply(0.0, 0.0, p.0, p.1);
+                assert!((one.0 - sequential.0).abs() < 0.0001);
+                assert!((one.1 - sequential.1).abs() < 0.0001);
+            }
+        }
     }
 }

@@ -119,3 +119,64 @@ fn headless_sessions_keep_the_dictionary_in_memory() {
     h.session.run("review.addToDictionary", &json!({"word": "zxqmcpword2"})).expect("added");
     assert!(h.session.user_dict_path.is_none());
 }
+
+/// Through real MCP tools, a read root grants no write authority and vice versa.
+/// Unlike a path-only unit test, this checks routing through Server -> Headless -> file I/O.
+#[cfg(not(target_arch = "wasm32"))]
+#[test]
+fn mcp_file_roots_confine_open_save_and_keep_outside_documents_unchanged() {
+    use std::sync::Arc;
+    use std::sync::atomic::{AtomicU64, Ordering};
+    use wordcraft_engine::file_access::AutomationRoots;
+
+    struct TempDir(std::path::PathBuf);
+    impl Drop for TempDir {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
+    static NEXT: AtomicU64 = AtomicU64::new(0);
+    let dir = TempDir(std::env::temp_dir().join(format!("wordcraft-mcp-roots-{}-{}", std::process::id(), NEXT.fetch_add(1, Ordering::Relaxed))));
+    for part in ["read", "write", "outside"] {
+        std::fs::create_dir_all(dir.0.join(part)).unwrap();
+    }
+    let source = dir.0.join("read/input.txt");
+    let forbidden = dir.0.join("outside/private.txt");
+    let saved = dir.0.join("write/result.docx");
+    std::fs::write(&source, b"Allowed source marker.").unwrap();
+    std::fs::write(&forbidden, b"Untouched private marker.").unwrap();
+
+    let roots = AutomationRoots::new(Some(&dir.0.join("read")), Some(&dir.0.join("write"))).unwrap().unwrap();
+    let mut server = Server::new(Box::new(Headless::default().with_automation_roots(Some(Arc::clone(&roots)))));
+    let request = |server: &mut Server, tool: &str, path: &std::path::Path| {
+        call(server, 17, "tools/call", json!({"name": tool, "arguments": {"path": path.to_string_lossy()}}))
+    };
+
+    let denied_read = request(&mut server, "open_document", &forbidden);
+    assert_eq!(denied_read["result"]["isError"], true, "{denied_read}");
+    assert!(denied_read["result"]["content"][0]["text"].as_str().unwrap().contains("outside the read root"));
+
+    let allowed_read = request(&mut server, "open_document", &source);
+    assert_eq!(allowed_read["result"]["isError"], false, "{allowed_read}");
+    let text = tool(&mut server, "get_text", json!({}));
+    assert!(text["text"].as_str().unwrap().contains("Allowed source marker."));
+
+    let denied_write = request(&mut server, "save_document", &forbidden);
+    assert_eq!(denied_write["result"]["isError"], true, "{denied_write}");
+    assert!(denied_write["result"]["content"][0]["text"].as_str().unwrap().contains("outside the write root"));
+    assert_eq!(std::fs::read(&forbidden).unwrap(), b"Untouched private marker.");
+
+    let denied_read_root_write = request(&mut server, "save_document", &source);
+    assert_eq!(denied_read_root_write["result"]["isError"], true, "{denied_read_root_write}");
+    assert_eq!(std::fs::read(&source).unwrap(), b"Allowed source marker.");
+
+    let allowed_write = request(&mut server, "save_document", &saved);
+    assert_eq!(allowed_write["result"]["isError"], false, "{allowed_write}");
+    assert!(saved.is_file());
+    let denied_reopen = request(&mut server, "open_document", &saved);
+    assert_eq!(denied_reopen["result"]["isError"], true, "{denied_reopen}");
+
+    let document = wordcraft_engine::io::open_path(&saved).unwrap();
+    assert!(document.plain_text(wordcraft_doc::StoryRef::Body).contains("Allowed source marker."));
+    assert_eq!(std::fs::read(&forbidden).unwrap(), b"Untouched private marker.");
+}
