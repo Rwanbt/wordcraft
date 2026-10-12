@@ -342,6 +342,9 @@ mod tests {
         assert_eq!(parse_measure("4px", Unit::Points), Some(3.0));
         assert_eq!(parse_measure("3 pi", Unit::Points), Some(36.0));
         assert_eq!(parse_measure("1e309pt", Unit::Points), None);
+        // A larger integer itself becomes infinity when parsed as f32.
+        let unrepresentable = format!("{}pt", "9".repeat(45));
+        assert_eq!(parse_measure(&unrepresentable, Unit::Points), None);
     }
 
     #[test]
@@ -404,12 +407,7 @@ mod tests {
         assert!((w - 4.0).abs() < 0.0001);
         assert!((h - 12.0).abs() < 0.0001);
 
-        for outer in [
-            Spin::new(30.0, false, false),
-            Spin::new(140.0, true, false),
-            Spin::new(270.0, false, true),
-            Spin::new(35.0, true, true),
-        ] {
+        for outer in [Spin::new(30.0, false, false), Spin::new(140.0, true, false), Spin::new(270.0, false, true), Spin::new(35.0, true, true)] {
             let inner = Spin::new(45.0, true, false);
             let composed = inner.within(outer);
             for p in [(1.0, 2.0), (-3.0, 5.0), (0.0, 0.0)] {

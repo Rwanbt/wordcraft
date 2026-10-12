@@ -428,11 +428,7 @@ mod case_option_tests {
                     let opts = Opts { match_case, wildcards, regex, ..Opts::default() };
                     let pattern = compile("AbC", &opts).unwrap();
                     let expected = !match_case && (!wildcards || regex);
-                    assert_eq!(
-                        pattern.case_insensitive,
-                        expected,
-                        "match_case={match_case}, wildcards={wildcards}, regex={regex}"
-                    );
+                    assert_eq!(pattern.case_insensitive, expected, "match_case={match_case}, wildcards={wildcards}, regex={regex}");
                 }
             }
         }
