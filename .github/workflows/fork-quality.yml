@@ -51,6 +51,8 @@ jobs:
         run: cargo test --locked -p wordcraft-engine --test safe_save
       - name: DOCX hostile-input regressions
         run: cargo test --locked -p wordcraft-docx --test malformed
+      - name: Control-key path isolation and hostile identifiers
+        run: cargo test --locked -p wordcraft-control-key --all-targets
 
   linux-quality:
     runs-on: ubuntu-24.04
