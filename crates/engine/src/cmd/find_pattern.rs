@@ -154,7 +154,7 @@ pub fn compile(query: &str, o: &Opts) -> Result<Compiled, String> {
         }
     };
     // Word's wildcard search always matches case.
-    let case_insensitive = !o.match_case && !(o.wildcards && !o.regex);
+    let case_insensitive = !o.match_case && (o.regex || !o.wildcards);
     Ok(Compiled { pattern: pat, case_insensitive, spans_paras: spans })
 }
 
@@ -414,4 +414,27 @@ pub fn expand(pieces: &[Piece], found: &str, group: &dyn Fn(usize) -> Option<Str
         }
     }
     out
+}
+
+#[cfg(test)]
+mod case_option_tests {
+    use super::{Opts, compile};
+
+    #[test]
+    fn wildcard_case_policy_and_regex_precedence_cover_all_flag_combinations() {
+        for match_case in [false, true] {
+            for wildcards in [false, true] {
+                for regex in [false, true] {
+                    let opts = Opts { match_case, wildcards, regex, ..Opts::default() };
+                    let pattern = compile("AbC", &opts).unwrap();
+                    let expected = !match_case && (!wildcards || regex);
+                    assert_eq!(
+                        pattern.case_insensitive,
+                        expected,
+                        "match_case={match_case}, wildcards={wildcards}, regex={regex}"
+                    );
+                }
+            }
+        }
+    }
 }

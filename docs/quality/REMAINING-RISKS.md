@@ -19,3 +19,10 @@
 ## Current decision
 
 **PARTIALLY VERIFIED (audit and proposed tests only), NOT PRODUCTION READY for the application.** A PR must remain in draft until CI is demonstrably green and broader gates are completed. No automatic main merge, force-push or upstream PR.
+
+## Observed CI issues and mitigations
+
+- Initial CI failed due to Rust 1.90 versus locked dependencies requiring Rust 1.92. Manifest and isolated CI now use Rust 1.92.0.
+- One pre-existing `docbin/src/fmt.rs` irrefutable let-chain failed Clippy `-D warnings`. A behavior-preserving fix with a synthetic RGB decoding test was committed; passing Clippy at the newer SHA is still required.
+- Initial geometry instrumentation at `483918eeb3975004079dbf82e5fe87d4cff1bc83`: 70.26% lines and 71.05% functions. Geometry tests and numeric overflow validation have been expanded; recalculate coverage after new CI.
+- A later strict Clippy pass identified engine `find_pattern.rs` unnecessary negation and a test-only explicit `drop(run)` on a non-`Drop` closure in `ribbon.rs`. Boolean semantics preserved with a complete 8-combination regression; removed redundant explicit drop. Verification at the new SHA pending.

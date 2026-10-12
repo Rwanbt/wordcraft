@@ -38,3 +38,15 @@ cargo xtask stats --exact
 ```
 
 The first five commands are configured for GitHub Actions, **not marked passed** at documentation creation. Do not add a threshold without a measured result. No exclusions have been established.
+
+## First measured instrumented report
+
+- **Run:** https://github.com/Rwanbt/wordcraft/actions/runs/38269866056
+- **Measured commit:** `483918eeb3975004079dbf82e5fe87d4cff1bc83`
+- **Crate:** `wordcraft-geom` only.
+- **Lines:** 137 / 195 = **70.26%**
+- **Functions:** 27 / 38 = **71.05%**
+- **Branches:** unavailable (0 branch records in generated LCOV).
+- **Artifact:** `coverage-geom-linux`, GitHub artifact ID `11755364816`.
+
+The measurements preceded the extra geometry edge-case and transform tests. Their coverage must be recalculated by CI on the newer commit. Do not treat this number as workspace coverage.
