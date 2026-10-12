@@ -6,6 +6,7 @@
 | --- | --- | --- | --- | --- | --- |
 | WC-SAVE-001 | `engine/io/safe_save.rs` | Atomic preparation preserves existing destination on failure and does not leak temporary files | Existing unit tests; 3 added edge-case tests for new document rollback, dropping staged write and exact replacement bytes | Rust unit tests transitively via future workspace run; not yet directly configured | UNVERIFIED |
 | WC-SAVE-002 | `engine/tests/safe_save.rs` | Failed Save As preserves path, dirty state and existing bytes; encrypted saves round-trip | Existing `safe_save` integration suite | Linux, Windows, macOS `core-regressions` | UNVERIFIED |
+| WC-DOCBIN-001 | `docbin/src/fmt.rs` | Binary Word character COLORREF preserves RGB byte order; truncated operand has no effect | Added unit regression alongside a Clippy-corrected, behaviour-preserving parser guard | Linux `linux-quality` DOCBIN unit suite | UNVERIFIED |
 | WC-DOCX-001 | `docx/tests/malformed.rs` | Hostile or truncated OOXML/ZIP does not cause crashes or silently invalid output | Existing ZIP/XML/truncation and property-based tests | Linux, Windows, macOS `core-regressions` | UNVERIFIED |
 | WC-DOCX-002 | `docx/tests/roundtrip.rs` | Valid OOXML roundtrips retain document semantics | Existing test file, not yet exercised by new CI | Not yet configured | UNVERIFIED |
 | WC-DOC-001 | `doc/src/tests.rs` | Model invariants, edits and serialization | Existing test file; tests not harness-counted | Not yet configured | UNVERIFIED |

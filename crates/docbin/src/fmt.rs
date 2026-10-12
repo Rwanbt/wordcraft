@@ -152,10 +152,8 @@ pub(crate) fn apply_char(p: &mut CharProps, prl: &Prl, base: &CharProps, fonts: 
         }
         C_CR => {
             // COLORREF 0x00BBGGRR, stored little-endian: operand bytes are R, G, B.
-            if let [r, g, b, ..] = prl.operand
-                && let (r, g, b) = (*r, *g, *b)
-            {
-                p.color = Some(TextColor::Rgb(Rgb(r, g, b)));
+            if let [r, g, b, ..] = prl.operand {
+                p.color = Some(TextColor::Rgb(Rgb(*r, *g, *b)));
             }
         }
         C_HPS => {
@@ -411,5 +409,22 @@ fn apply_chain_para(para: &mut ParaProps, grpprl: &[u8]) {
         if prl.sgc() == 1 {
             apply_para(para, &prl);
         }
+    }
+}
+
+#[cfg(test)]
+mod colorref_tests {
+    use super::*;
+
+    #[test]
+    fn explicit_colorref_decodes_rgb_and_ignores_truncated_operand() {
+        let base = CharProps::default();
+        let mut color = CharProps::default();
+        apply_char(&mut color, &Prl { op: C_CR, operand: &[0x12, 0x34, 0x56, 0] }, &base, &[]);
+        assert!(matches!(color.color, Some(TextColor::Rgb(Rgb(0x12, 0x34, 0x56)))));
+
+        let mut short = CharProps::default();
+        apply_char(&mut short, &Prl { op: C_CR, operand: &[0x12, 0x34] }, &base, &[]);
+        assert!(short.color.is_none());
     }
 }
